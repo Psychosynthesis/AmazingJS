@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Flame</title>
+	<style>
+		body, html, canvas {
+			padding: 0;
+			margin: 0;
+			border: none;
+			background: #fff;
+		}
+		body {
+			text-align:center;
+		}
+	</style>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.5.0/p5.min.js"></script>
+	<!-- <script src="/core/p5_without_sound.v.1.5.0.js"></script> -->
+	<script>
+	const canvasHeight = window.document.documentElement.clientHeight;
+	const canvasWidth = window.document.documentElement.clientWidth;
+	let sketch = function(p) {
+		let pnts;
+		let n = canvasWidth-100;
+		let terminate;
+		let color_offset;
+		let isSaved = false
+
+		function init() {
+			terminate = false;
+			pnts = [];
+			color_offset = p.random(360);
+			for (var i = 0; i < n; i++) {
+				pnts.push({
+					x:i+200,
+					y:1,
+					px:i+200,
+					py:0
+				});
+			}
+		}
+
+		p.setup = function() {
+			p.createCanvas(canvasWidth, canvasHeight);
+			p.colorMode(p.HSB);
+			// p.background('#fff');
+			init();
+		}
+
+		p.draw = function() {
+			if(!terminate) {
+				display();
+				step();
+				display();
+				terminate = step();
+			} else if (!isSaved) {
+				// p.saveCanvas('Flame', 'jpg');
+				isSaved = true;
+			}
+		}
+
+		function display () {
+			for (var i = 0; i < pnts.length; i++) {
+				p.stroke(((pnts[i].y * .03) + color_offset + (i/n * 120)) % 300,80,100,.07);
+				p.line(pnts[i].px, pnts[i].py, pnts[i].x, pnts[i].y);
+			}
+		}
+
+		function step () {
+			if (pnts[0].y > p.height) return true;
+			for (var i = 0; i < pnts.length; i++) {
+				pnts[i].px = pnts[i].x;
+				pnts[i].py = pnts[i].y;
+				pnts[i].x += (p.noise(i/200,pnts[i].y/350)) *2 -1;
+				pnts[i].y++;
+			}
+			return false;
+		}
+
+
+	}
+
+	new p5(sketch);
+
+	</script>
+</head>
+<body>
+</body>
+</html>
