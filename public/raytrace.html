@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Ray tracing</title>
+	<meta charset="UTF-8">
+</head>
+<body>
+	<h2>Ray tracing on pure JS</h2>
+	<canvas id="canvas" width="900" height="600" style="width: 900px; height: 600px"></canvas>
+	<div>FPS: &nbsp;<span id="fps"></span></div>
+
+	<script>
+		const canvas = document.getElementById('canvas');
+		const spheresRadius = 15;
+		const spheresAmount = 5;
+		let FRAMES = 0; // FPS counter
+
+		const Vector3 = function(x, y, z) {
+			this.x = x;
+			this.y = y;
+			this.z = z;
+		};
+
+		const minWHAT = new Vector3(-spheresRadius * 5, -spheresRadius * 5, -spheresRadius * 1); // What is?
+		const maxWHAT = new Vector3(spheresRadius * 5, spheresRadius * 5, spheresRadius * 5); // What is?
+
+
+		function Color(r, g, b) {
+			this.r = r;
+			this.g = g;
+			this.b = b;
+		};
+
+		Color.prototype.copy = function() {
+			return new Color(this.r, this.g, this.b);
+		};
+
+		Color.prototype.mul = function(n) {
+			this.r *= n;
+			this.g *= n;
+			this.b *= n;
+		};
+
+		Color.prototype.add = function(c) {
+			this.r += c.r;
+			this.g += c.g;
+			this.b += c.b;
+		};
+
+		Color.prototype.normalize = function(n) {
+			var max = this.r;
+			if(this.g > max) max = this.g;
+			if(this.b > max) max = this.b;
+
+			var mul = n / max;
+
+			this.r *= mul;
+			this.g *= mul;
+			this.b *= mul;
+		};
+
+		Vector3.prototype.rotX = function(a) {
+			var ny = this.y * Math.cos(a) - this.z * Math.sin(a);
+			var nz = this.y * Math.sin(a) + this.z * Math.cos(a);
+
+			this.y = ny;
+			this.z = nz;
+		};
+
+		Vector3.prototype.rotY = function(a) {
+			var nx = this.x * Math.cos(a) + this.z * Math.sin(a);
+			var nz = - this.x * Math.sin(a) + this.z * Math.cos(a);
+
+			this.x = nx;
+			this.z = nz;
+		};
+		//
+		//Vector3.prototype.rotZ = function(a) {
+		//	var nx = this.x * Math.cos(a) - this.y * Math.sin(a);
+		//	var ny = this.x * Math.sin(a) - this.y * Math.cos(a);
+		//
+		//	this.x = nx;
+		//	this.y = ny;
+		//};
+
+		Vector3.prototype.len = function() {
+			return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+		};
+
+		Vector3.prototype.normalize = function() {
+			const l = this.len();
+
+			this.x /= l;
+			this.y /= l;
+			this.z /= l;
+		};
+
+		Vector3.prototype.mirror = function(normal) {
+			const dot = this.dotProduct(normal);
+			this.x += normal.x * dot * -2;
+			this.y += normal.y * dot * -2;
+			this.z += normal.z * dot * -2;
+		};
+
+		/**
+		 * @param {Vector3} v
+		 * @returns {Number}
+		 */
+		Vector3.prototype.dist = function(v) {
+			return Math.sqrt(this.dist2(v));
+		};
+
+		/**
+		 * @param {Vector3} v
+		 * @returns {Number}
+		 */
+		Vector3.prototype.dist2 = function(v) {
+			var dx = this.x - v.x;
+			var dy = this.y - v.y;
+			var dz = this.z - v.z;
+
+			return dx * dx + dy * dy + dz * dz;
+		};
+
+		Vector3.prototype.mul = function(n) {
+			this.x *= n;
+			this.y *= n;
+			this.z *= n;
+		};
+
+		/**
+		 * @returns {Vector3}
+		 */
+		Vector3.prototype.copy = function() {
+			return new Vector3(this.x, this.y, this.z);
+		};
+
+		/**
+		 *
+		 * @param {Vector3} v
+		 */
+		Vector3.prototype.move = function(v) {
+			this.x += v.x;
+			this.y += v.y;
+			this.z += v.z;
+		};
+
+		/**
+		 *
+		 * @param {Vector3} v
+		 * @returns {Vector3}
+		 */
+		Vector3.prototype.createDiff = function(v) {
+			return new Vector3(this.x - v.x, this.y - v.y, this.z - v.z);
+		};
+
+		/**
+		 *
+		 * @param {Vector3} v
+		 * @returns {Number}
+		 */
+		Vector3.prototype.dotProduct = function(v) {
+			return this.x * v.x + this.y * v.y + this.z * v.z;
+		};
+
+		function DisplayMatrix(width, height, focusDistance) {
+			this.width = width;
+			this.height = height;
+
+			this.fovWidth = Math.atan(width / 2 / focusDistance) * 2;
+			this.fovHeight = Math.atan(height / 2/ focusDistance) * 2;
+
+			this.directions = [];
+			this.initMatrix();
+		};
+
+		DisplayMatrix.prototype.initMatrix = function() {
+			this.directions = new Array(this.height);
+
+			for(var h = 0; h < this.height; h++) {
+				this.directions[h] = new Array(this.width);
+				var ya = this.fovHeight / 2 - (this.fovHeight / this.height) * h;
+
+				for(let w = 0; w < this.width; w++) {
+					var xa = this.fovWidth / 2 - (this.fovWidth / this.width) * w;
+
+					var v = new Vector3(0, 0, 1);
+					v.rotX(ya);
+					v.rotY(xa);
+					this.directions[h][w] = v;
+				}
+			}
+		};
+
+		function Sphere(center, radius, color) {
+			this.center = center;
+			this.radius = radius;
+			this.radius2 = radius * radius;
+			this.color = color;
+		};
+
+		Sphere.prototype.calculateNearestDistance = function(position, direction) {
+			return ((this.center.x - position.x) * direction.x
+				+ (this.center.y - position.y) * direction.y
+				+ (this.center.z - position.z) * direction.z)
+			;
+		};
+
+		function Scene() {
+			this.spheres = [];
+		};
+
+		Scene.prototype.addSphere = function(sphere) {
+			this.spheres.push(sphere);
+		};
+
+		function Collision(sphere, distance, position) {
+			this.sphere = sphere;
+			this.distance = distance;
+			this.position = position;
+		};
+
+		Collision.prototype.createNormal = function() {
+			var normal = this.position.createDiff(this.sphere.center);
+		//	console.log(this.sphere.radius, normal.len());
+			normal.mul(1 / this.sphere.radius);
+
+			return normal;
+		};
+
+		function Renderer(scene) {
+			this.scene = scene;
+		};
+
+		/**
+		 * @param {Vector3} position
+		 * @param {Vector3} direction
+		 * @returns {Collision[]}
+		 */
+		Renderer.prototype._trace = function(position, direction, cb) {
+			var spheres = this.scene.spheres;
+
+			for(let i = 0; i < spheres.length; i++) {
+				let s = spheres[i];
+
+				var nearestPointDistance = s.calculateNearestDistance(position, direction);
+				if (nearestPointDistance < 0) continue;
+
+				var dd2 = position.dist2(s.center);
+				var rr2 = dd2 - nearestPointDistance * nearestPointDistance;
+				if (rr2 > s.radius2) continue;
+
+				var distDelta = Math.sqrt(s.radius2 - rr2);
+				cb(s, nearestPointDistance - distDelta);
+			}
+		};
+
+		/**
+		 * @param {Vector3} position
+		 * @param {Vector3} direction
+		 * @returns {Collision[]}
+		 */
+		Renderer.prototype.traceNearest = function(position, direction, except) {
+			let nearestDist = Infinity;
+			let nearest = false;
+
+			this._trace(position, direction, function(sphere, distance) {
+				if (sphere === except) return;
+
+				if (distance < nearestDist) {
+					nearestDist = distance;
+					nearest = sphere;
+				}
+			});
+
+			if(!nearest) return null;
+
+			var nearestPos = direction.copy();
+			nearestPos.mul(nearestDist);
+			nearestPos.move(position);
+
+			return new Collision(nearest, nearestDist, nearestPos);
+		};
+
+
+		function Camera(canvas) {
+			this.displayMatrix = new DisplayMatrix(canvas.width, canvas.height, canvas.width * 2);
+			this.canvas = canvas;
+			this.context = this.canvas.getContext('2d');
+		};
+
+		Camera.prototype.shot = function(scene, position) {
+			const r = new Renderer(scene);
+			const displayMatrix = this.displayMatrix;
+			const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
+			const pixels = imageData.data;
+
+			for(let h = 0; h < displayMatrix.height; h++) {
+				const pixelsRowOffset = h * this.canvas.width * 4;
+				const row = displayMatrix.directions[h];
+
+				for(let w = 0; w < displayMatrix.width; w++) {
+					let direction = row[w];
+					let pixelOffset = pixelsRowOffset + w * 4;
+					let collision = r.traceNearest(position, direction);
+					if (collision) {
+						let normal = collision.createNormal();
+						let dirToCam = position.createDiff(collision.position);
+						dirToCam.normalize();
+						let light = dirToCam.dotProduct(normal);
+						let baseColor = collision.sphere.color;
+
+						// отражение
+						let mirColor = new Color(0, 0, 0);
+						let dir2 = direction.copy();
+						dir2.mirror(normal);
+						let collision2 = r.traceNearest(collision.position, dir2, collision.sphere);
+						if(collision2) {
+							mirColor = collision2.sphere.color.copy();
+						}
+
+						let color = baseColor.copy();
+						color.mul(light);
+						color.mul(0.8);
+						mirColor.mul(0.2);
+						color.add(mirColor);
+
+						pixels[pixelOffset + 0] = Math.floor(color.r);
+						pixels[pixelOffset + 1] = Math.floor(color.g);
+						pixels[pixelOffset + 2] = Math.floor(color.b);
+						pixels[pixelOffset + 3] = 0xff;
+					} else {
+						pixels[pixelOffset + 0] = 0x00;
+						pixels[pixelOffset + 1] = 0x00;
+						pixels[pixelOffset + 2] = 0x00;
+						pixels[pixelOffset + 3] = 0xff;
+					}
+				}
+			}
+
+			this.context.putImageData(imageData, 0, 0);
+		};
+
+		const scene = new Scene();
+
+		for (let i = 0; i < spheresAmount; i++) {
+			let c = new Color(Math.random(), Math.random(), Math.random());
+			c.normalize(0xff);
+			let s = new Sphere(new Vector3(-spheresRadius, 0, spheresRadius * 10), spheresRadius, c);
+			scene.addSphere(s);
+			s.speed = new Vector3(1 - Math.random() * 2, 1 - Math.random() * 2, 1 - Math.random() * 2);
+		}
+
+		const camPos = new Vector3(0, -10, -400);
+		const cam = new Camera(canvas);
+
+		function frame() {
+			const coords = ['x', 'y', 'z'];
+			for(let i = 0; i < scene.spheres.length; i++) {
+				const s = scene.spheres[i];
+				const radius = s.radius;
+				const moveCoord = () => {
+					for (let zz = 0; zz < coords.length; zz++) {
+						const coord = coords[zz];
+						let m = 0;
+						let d = s.speed[coord];
+						let cur = s.center[coord];
+
+						if (d > 0) {
+							m = maxWHAT[coord];
+							if (cur + d + radius > m) {
+								cur = m - radius;
+								d = -d;
+							} else {
+								cur += d;
+							}
+						} else {
+							m = minWHAT[coord];
+							if(cur + d - radius < m) {
+								cur = m + radius;
+								d = -d;
+							} else {
+								cur += d;
+							}
+						}
+
+						s.speed[coord] = d;
+						s.center[coord] = cur;
+					};
+				};
+
+				moveCoord();
+			}
+
+			cam.shot(scene, camPos);
+			// console.log('frame');
+			FRAMES++;
+		}
+
+		frame();
+
+		setInterval(frame, 25);
+
+		setInterval(function() {
+			document.getElementById('fps').innerText = FRAMES;
+			FRAMES = 0;
+		}, 1000);
+
+	</script>
+</body>
+</html>
