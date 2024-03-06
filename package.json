@@ -1,0 +1,22 @@
+{
+  "name": "amazingjs",
+  "version": "1.0.0",
+  "description": "Collection of nice code examples",
+  "main": "index.js",
+  "scripts": {
+		"deploy": "gh-pages -d dist",
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Psychosynthesis/AmazingJS.git"
+  },
+  "author": "Nick G.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Psychosynthesis/AmazingJS/issues"
+  },
+  "homepage": "https://github.com/Psychosynthesis/AmazingJS#readme",
+  "devDependencies": {
+    "gh-pages": "^6.1.1"
+  }
+}

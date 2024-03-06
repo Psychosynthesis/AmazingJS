@@ -1,0 +1,12 @@
+*.log
+.DS_Store
+Thumbs.db
+
+.nvm-version
+.vscode
+.python-version
+
+node_modules
+public
+
+package-lock.json
