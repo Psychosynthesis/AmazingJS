@@ -8,7 +8,8 @@
 			padding: 0;
 			margin: 0;
 			border: none;
-			background: #fff;
+			background: #222;
+			color: #dfdfdf;
 		}
 		body {
 			text-align:center;
@@ -28,7 +29,7 @@
 
 	  p.setup = function() {
 	    p.createCanvas(canvasWidth, canvasHeight);
-	    p.background("#333");
+	    p.background("#222");
 	    p.noStroke();
 	    p.colorMode(p.HSB);
 	    p.blendMode(p.DARKEST);
@@ -39,7 +40,7 @@
 	  p.draw = function() {
 	    for (var h = -100; h < p.height; h+=250) {
 	      init(h);
-	      p.fill(p.random(360),100,80, .01);
+	      p.fill(p.random(200),p.random(100),p.random(255), .01);
 	      for (var i = 0; i < 35; i++) {
 	        current = update();
 	        display();
