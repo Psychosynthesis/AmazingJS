@@ -3,14 +3,29 @@
 <head>
 	<title>Ray tracing</title>
 	<meta charset="UTF-8">
+	<style>
+		* { margin: 0; padding: 0; }
+		html, body {
+			height: 100%;
+			background: #222;
+			color: #dfdfdf;
+			box-sizing: border-box;
+		}
+		html { width: 100%; }
+		body { padding: 40px; }
+		canvas { margin: 0 auto; display: block; }
+	</style>
 </head>
 <body>
-	<h2>Ray tracing on pure JS</h2>
-	<canvas id="canvas" width="900" height="600" style="width: 900px; height: 600px"></canvas>
-	<div>FPS: &nbsp;<span id="fps"></span></div>
+	<h2 style="text-align: center;">Ray tracing on pure JS</h2>
+	<div style="margin: 20px 0; text-align: center;">FPS: &nbsp;<span id="fps"></span></div>
+	<canvas id="canvas" width="800" height="500"></canvas>
 
 	<script>
 		const canvas = document.getElementById('canvas');
+		const fpsCountBlock = document.getElementById('fps');
+		const canvasWidth = canvas.width;
+		const canvasHeight = canvas.height;
 		const spheresRadius = 15;
 		const spheresAmount = 5;
 		let FRAMES = 0; // FPS counter
@@ -21,9 +36,8 @@
 			this.z = z;
 		};
 
-		const minWHAT = new Vector3(-spheresRadius * 5, -spheresRadius * 5, -spheresRadius * 1); // What is?
-		const maxWHAT = new Vector3(spheresRadius * 5, spheresRadius * 5, spheresRadius * 5); // What is?
-
+		const sceneMin = new Vector3(-spheresRadius * 8, -spheresRadius * 8, -spheresRadius * 5);
+		const sceneMax = new Vector3(spheresRadius * 6, spheresRadius * 6, spheresRadius * 6);
 
 		function Color(r, g, b) {
 			this.r = r;
@@ -136,7 +150,6 @@
 		};
 
 		/**
-		 *
 		 * @param {Vector3} v
 		 */
 		Vector3.prototype.move = function(v) {
@@ -146,7 +159,6 @@
 		};
 
 		/**
-		 *
 		 * @param {Vector3} v
 		 * @returns {Vector3}
 		 */
@@ -155,7 +167,6 @@
 		};
 
 		/**
-		 *
 		 * @param {Vector3} v
 		 * @returns {Number}
 		 */
@@ -163,28 +174,25 @@
 			return this.x * v.x + this.y * v.y + this.z * v.z;
 		};
 
-		function DisplayMatrix(width, height, focusDistance) {
-			this.width = width;
-			this.height = height;
+		function DisplayMatrix(focusDistance) {
+			this.directions = new Array(canvasHeight);
 
-			this.fovWidth = Math.atan(width / 2 / focusDistance) * 2;
-			this.fovHeight = Math.atan(height / 2/ focusDistance) * 2;
+			this.fovWidth = Math.atan(canvasWidth / 2 / focusDistance) * 2;
+			this.fovHeight = Math.atan(canvasHeight / 2/ focusDistance) * 2;
 
 			this.directions = [];
 			this.initMatrix();
 		};
 
 		DisplayMatrix.prototype.initMatrix = function() {
-			this.directions = new Array(this.height);
+			for (let h = 0; h < canvasHeight; h++) {
+				this.directions[h] = new Array(canvasWidth);
+				const ya = this.fovHeight / 2 - (this.fovHeight / canvasHeight) * h;
 
-			for(var h = 0; h < this.height; h++) {
-				this.directions[h] = new Array(this.width);
-				var ya = this.fovHeight / 2 - (this.fovHeight / this.height) * h;
+				for (let w = 0; w < canvasWidth; w++) {
+					const xa = this.fovWidth / 2 - (this.fovWidth / canvasHeight) * w;
 
-				for(let w = 0; w < this.width; w++) {
-					var xa = this.fovWidth / 2 - (this.fovWidth / this.width) * w;
-
-					var v = new Vector3(0, 0, 1);
+					const v = new Vector3(0, 0, 1);
 					v.rotX(ya);
 					v.rotY(xa);
 					this.directions[h][w] = v;
@@ -258,7 +266,7 @@
 		/**
 		 * @param {Vector3} position
 		 * @param {Vector3} direction
-		 * @returns {Collision[]}
+		 * @returns {Collision[] || null}
 		 */
 		Renderer.prototype.traceNearest = function(position, direction, except) {
 			let nearestDist = Infinity;
@@ -284,7 +292,7 @@
 
 
 		function Camera(canvas) {
-			this.displayMatrix = new DisplayMatrix(canvas.width, canvas.height, canvas.width * 2);
+			this.displayMatrix = new DisplayMatrix(canvasWidth * 2); // DisplayMatrix(focusDistance)
 			this.canvas = canvas;
 			this.context = this.canvas.getContext('2d');
 		};
@@ -292,17 +300,18 @@
 		Camera.prototype.shot = function(scene, position) {
 			const r = new Renderer(scene);
 			const displayMatrix = this.displayMatrix;
-			const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
+			const imageData = this.context.getImageData(0, 0, canvasWidth, canvasHeight);
 			const pixels = imageData.data;
 
-			for(let h = 0; h < displayMatrix.height; h++) {
-				const pixelsRowOffset = h * this.canvas.width * 4;
+			for (let h = 0; h < canvasHeight; h++) {
+				const pixelsRowOffset = h * canvasWidth * 4;
 				const row = displayMatrix.directions[h];
 
-				for(let w = 0; w < displayMatrix.width; w++) {
+				for (let w = 0; w < canvasWidth; w++) {
 					let direction = row[w];
 					let pixelOffset = pixelsRowOffset + w * 4;
-					let collision = r.traceNearest(position, direction);
+
+					const collision = r.traceNearest(position, direction);
 					if (collision) {
 						let normal = collision.createNormal();
 						let dirToCam = position.createDiff(collision.position);
@@ -314,8 +323,8 @@
 						let mirColor = new Color(0, 0, 0);
 						let dir2 = direction.copy();
 						dir2.mirror(normal);
-						let collision2 = r.traceNearest(collision.position, dir2, collision.sphere);
-						if(collision2) {
+						const collision2 = r.traceNearest(collision.position, dir2, collision.sphere);
+						if (collision2) {
 							mirColor = collision2.sphere.color.copy();
 						}
 
@@ -351,45 +360,42 @@
 			s.speed = new Vector3(1 - Math.random() * 2, 1 - Math.random() * 2, 1 - Math.random() * 2);
 		}
 
-		const camPos = new Vector3(0, -10, -400);
+		const camPos = new Vector3(0, 0, -600);
 		const cam = new Camera(canvas);
+		const coords = ['x', 'y', 'z'];
 
 		function frame() {
-			const coords = ['x', 'y', 'z'];
-			for(let i = 0; i < scene.spheres.length; i++) {
-				const s = scene.spheres[i];
-				const radius = s.radius;
-				const moveCoord = () => {
-					for (let zz = 0; zz < coords.length; zz++) {
-						const coord = coords[zz];
-						let m = 0;
-						let d = s.speed[coord];
-						let cur = s.center[coord];
+			for (let i = 0; i < scene.spheres.length; i++) {
+				const spher = scene.spheres[i];
+				const radius = spher.radius;
 
-						if (d > 0) {
-							m = maxWHAT[coord];
-							if (cur + d + radius > m) {
-								cur = m - radius;
-								d = -d;
-							} else {
-								cur += d;
-							}
+				for (let z = 0; z < coords.length; z++) {
+					const coord = coords[z];
+					let d = spher.speed[coord];
+					let cur = spher.center[coord];
+					let m = 0;
+
+					if (d > 0) {
+						m = sceneMax[coord];
+						if (cur + d + radius > m) {
+							cur = m - radius;
+							d = -d;
 						} else {
-							m = minWHAT[coord];
-							if(cur + d - radius < m) {
-								cur = m + radius;
-								d = -d;
-							} else {
-								cur += d;
-							}
+							cur += d;
 						}
+					} else {
+						m = sceneMin[coord];
+						if (cur + d - radius < m) {
+							cur = m + radius;
+							d = -d;
+						} else {
+							cur += d;
+						}
+					}
 
-						s.speed[coord] = d;
-						s.center[coord] = cur;
-					};
+					spher.speed[coord] = d;
+					spher.center[coord] = cur;
 				};
-
-				moveCoord();
 			}
 
 			cam.shot(scene, camPos);
@@ -399,10 +405,10 @@
 
 		frame();
 
-		setInterval(frame, 25);
+		setInterval(frame, 20);
 
 		setInterval(function() {
-			document.getElementById('fps').innerText = FRAMES;
+			fpsCountBlock.innerText = FRAMES;
 			FRAMES = 0;
 		}, 1000);
 
