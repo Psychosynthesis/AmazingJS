@@ -31,6 +31,11 @@
       .circle.lived { background-color: red; }
       .warn-text { color: red; }
 
+      .theme-icon { position: fixed; bottom: 30px; right: 30px; display: flex; align-items: center; color: #fff; background: #14161b; font-size: 90%; border-radius: 5px; padding: 2px 6px; opacity: 0.7; user-select: none; cursor: pointer; }
+      .theme-icon svg { width: 24px; height: 22px; margin-left: 10px; }
+      .dark { background-color: #272a2c; color: #fff; }
+      .dark .theme-icon { background: #e5e5e5; color: #000; }
+
       @media print {
         body { margin-top: 0px; padding: 20px; padding-top: 0px; }
         .container { width: 100%; max-width: none; }
@@ -47,6 +52,7 @@
 </head>
 <body>
   <div class="container">
+    <div class="theme-icon" onclick="toggleTheme()">Theme: <svg><use width="24" height="24" xlink:href="#sun"></use></svg></div>
     <header class="header">
       <div>
         <h2>90 лет вашей жизни <span class="warn-text">в неделях</span></h2>
@@ -67,8 +73,15 @@
   <div class="footer">
     &nbsp;
   </div>
+  <svg style="display: none;" version="1.1" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+      <symbol id="sun" viewBox="0 0 32 32">
+        <path d="M8.031 16.5c0 4.143 3.358 7.5 7.5 7.5s7.5-3.357 7.5-7.5-3.357-7.5-7.5-7.5c-4.142 0-7.5 3.357-7.5 7.5zM15.531 3.75l-2.109 4.219h4.219l-2.11-4.219zM24.543 7.457l-4.475 1.491 2.982 2.983 1.493-4.474zM10.994 8.948l-4.474-1.491 1.491 4.475 2.983-2.984zM6.969 14.359l-4.219 2.11 4.219 2.109v-4.219zM24.031 18.641l4.219-2.109-4.219-2.109v4.218zM15.531 29.25l2.109-4.219h-4.219l2.11 4.219zM20.068 24.052l4.475 1.491-1.492-4.475-2.983 2.984zM6.52 25.543l4.475-1.491-2.983-2.983-1.492 4.474z" fill="currentColor"></path>
+      </symbol>
+  </svg>
 </body>
 <script>
+    const toggleTheme = () => { document.querySelector('body').classList.toggle('dark'); }
+
     const weeksContainer = document.getElementById('weeksContainer');
     const birthdateInput = document.getElementById('birthdate');
     const livedWeeks = (birthdate) => Math.floor((new Date() - birthdate) / (1000 * 3600 * 24 * 7));
@@ -82,6 +95,7 @@
     }
 
     function updateWeeks() {
+        if (!birthdateInput.value) return;
         const birthdate = new Date(birthdateInput.value);
         const weeksLeave = livedWeeks(birthdate);
 
