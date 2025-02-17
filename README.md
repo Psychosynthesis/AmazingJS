@@ -13,3 +13,4 @@ Some taken from [generated.space](https://generated.space) some from somewhere e
 
 ## Pure JS
 [Ray trace example](https://psychosynthesis.github.io/AmazingJS/raytrace.html)
+[90 years of your life in weeks](https://psychosynthesis.github.io/AmazingJS/lifetime.html)
