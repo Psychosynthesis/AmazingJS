@@ -33,11 +33,35 @@
 
 		let t = 0; // time variable
     let timerID = null;
-    let newColors = [0, 10, 20]; // r, g, b
-    const heightOnePercent = (window.innerHeight-1)/100;
+    let colors = [3, 18, 31]; // r, g, b
+    let colorUp = true;
+    const heightOnePercent = (window.innerHeight-1)/100; // 1% высоты в пикселях
+    const decreaseRed = () => (colors[0] - 7 > 0) ? colors[0] - Math.round(random(1, 7)) : 0;
+    const increaseRed = () => (colors[0] + 7 > 255) ? 255 : colors[0] + Math.round(random(1, 7));
+    const decreaseBlue = () => (colors[2] - 19 > 0) ? colors[2] - Math.round(random(1, 19)) : 0;
+    const increaseBlue = () => (colors[2] + 19 > 255) ? 255 : colors[2] + Math.round(random(1, 19));
+    const decreaseGreen = () => (colors[1] - 7 > 0) ? colors[1] - Math.round(random(1, 7)) : colors[1] + 0;
+    const increaseGreen = () => { // Значение цвета для зелёного кнала, зависит от позиции мыши и не более 255
+      const maxColor = Math.round(mouseY/heightOnePercent)*2.5;
+      return (colors[1] + 7 > maxColor) ? maxColor : colors[1] + Math.round(random(1, 7));
+    };
 
-    function getNewColors() {
-      return [ random(30), random((mouseY/heightOnePercent)*2.5), random(50, 255) ]; // r, g, b
+    function updateColors() {
+      if (colors.some((color) => color >= 254)) {
+        colorUp = false; // уменьшаем значения
+      } else if (colors.some((color) => color < 3)) {
+        colorUp = true;
+      }
+
+      if (colorUp) {
+        colors[0] = increaseRed();
+        colors[1] = increaseGreen();
+        colors[2] = increaseBlue();
+      } else {
+        colors[0] = decreaseRed();
+        colors[1] = decreaseGreen();
+        colors[2] = decreaseBlue();
+      }
     }
 
 		function setup() {
@@ -52,9 +76,7 @@
 			background(10, 10); // translucent background (creates trails)
 
       if (!timerID) {
-        timerID = setInterval(() => {
-          newColors = getNewColors();
-        }, 500);
+        timerID = setInterval(updateColors, 500);
       }
 
 			// make a x and y grid of ellipses
@@ -71,7 +93,7 @@
 					const myX = x + 20 * cos(2 * PI * t + angle);
 					const myY = y + 20 * sin(2 * PI * t + angle);
 
-          fill(newColors[0], newColors[1], newColors[2]); // (red, green, blue)
+          fill(colors[0], colors[1], colors[2]); // (red, green, blue)
 
 					ellipse(myX, myY, 10); // draw particle
 				}
