@@ -17,8 +17,8 @@
 	</style>
 	<script src="https://psychosynthesis.github.io/AmazingJS/p5_without_sound.v.1.5.0.js"></script>
 	<script>
-	const canvasHeight = window.innerHeight-1;
-	const canvasWidth = window.innerWidth-1;
+	const canvasHeight = window.innerHeight-5;
+	const canvasWidth = window.innerWidth-5;
 	let sketch = function(p) {
 	  let initial_size = 5;
 	  let initial_deviation = 300;
@@ -29,18 +29,18 @@
 
 	  p.setup = function() {
 	    p.createCanvas(canvasWidth, canvasHeight);
-	    p.background("#222");
+	    p.background("#555");
 	    p.noStroke();
 	    p.colorMode(p.HSB);
-	    p.blendMode(p.DARKEST);
+	    p.blendMode(p.BLEND);
 	    p.noLoop();
-
+			p.frameRate(30);
 	  }
 
 	  p.draw = function() {
 	    for (var h = -100; h < p.height; h+=250) {
 	      init(h);
-	      p.fill(p.random(200),p.random(100),p.random(255), .01);
+	      p.fill(p.random(200), p.random(125), p.random(255), .01); // p.fill(red, green, blue);
 	      for (var i = 0; i < 35; i++) {
 	        current = update();
 	        display();
@@ -69,13 +69,15 @@
 	  }
 
 	  function display () {
-	    p.beginShape();
-	    for (let i = 0; i < current.length; i++) {
-	      p.vertex(current[i].x, current[i].y);
-	    }
-	    p.vertex(p.width,p.height);
-	    p.vertex(0,p.height);
-	    p.endShape(p.CLOSE);
+			p.beginShape();
+		  for (let i = 0; i < current.length; i++) {
+		    let x = p.constrain(current[i].x, 0, p.width); // Ограничиваем x
+		    let y = p.constrain(current[i].y, 0, p.height); // Ограничиваем y
+		    p.vertex(x, y);
+		  }
+		  p.vertex(p.width, p.height);
+		  p.vertex(0, p.height);
+		  p.endShape(p.CLOSE);
 	  }
 
 	  function interpolate (points, sd) {
@@ -91,8 +93,9 @@
 	  }
 
 	  let move_nearby = function(pnt, sd) {
-	    pnt.x = p.randomGaussian(pnt.x, pnt.z * sd);
-	    pnt.y = p.randomGaussian(pnt.y, pnt.z * sd);
+			const movieStep = pnt.z * sd;
+	    pnt.x = p.randomGaussian(pnt.x, movieStep);
+	    pnt.y = p.randomGaussian(pnt.y, movieStep);
 	  }
 
 	  let deep_copy = function(arr) {
