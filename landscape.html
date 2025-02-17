@@ -272,8 +272,8 @@
 		return PerspT;
 	}));
 	  const customPerspective = window.PerspT;
-	  const canvasHeight = window.document.documentElement.clientHeight;
-	  const canvasWidth = window.document.documentElement.clientWidth;
+    const canvasHeight = window.innerHeight-1;
+  	const canvasWidth = window.innerWidth-1;
 	  const halfHeight = canvasHeight / 2;
 
 	  let sketch = function (p) {
