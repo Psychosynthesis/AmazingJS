@@ -5,22 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>90 лет жизни в неделях</title>
     <style>
-      body, .header, .container, #weeksContainer { display: flex; }
-      body {
-          font-family: Helvetica, Arial, sans-serif;
-          flex-direction: column;
-          align-items: center;
-          margin: 0;
-          margin-top: 20px;
-      }
+      body, .header, .container, #weeksContainer { display: flex; margin: 0; }
+      body { font-family: Helvetica, Arial, sans-serif; flex-direction: column; align-items: center; margin-top: 20px; }
       h2 { margin: 0px; }
+
       .container { flex-direction: column;  width: 80%; max-width: 1200px; }
       #weeksContainer { flex-wrap: wrap; width: 100%; gap: 3px; }
-      .header {
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
+      .header { justify-content: space-between; align-items: center; margin-bottom: 20px; }
       .circle {
           width: 10px; /* Ширина кружочка */
           height: 10px; /* Высота кружочка */
@@ -44,9 +35,11 @@
       }
 
       @media (max-width: 900px) {
-        .header { flex-direction: column; }
         h2 { margin-bottom: 20px; }
+        .header { flex-direction: column; }
         .container { flex-direction: column;  width: 90%; }
+        .circle { width: 5px; height: 5px; }
+        #weeksContainer { gap: 2px; }
       }
     </style>
 </head>
