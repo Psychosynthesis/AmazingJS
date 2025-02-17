@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>90 лет жизни в неделях</title>
+    <style>
+      body, .header, .container, #weeksContainer { display: flex; }
+      body {
+          font-family: Helvetica, Arial, sans-serif;
+          flex-direction: column;
+          align-items: center;
+          margin: 0;
+          margin-top: 20px;
+      }
+      h2 { margin: 0px; }
+      .container { flex-direction: column;  width: 80%; max-width: 1200px; }
+      #weeksContainer { flex-wrap: wrap; width: 100%; gap: 3px; }
+      .header {
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .circle {
+          width: 10px; /* Ширина кружочка */
+          height: 10px; /* Высота кружочка */
+          border-radius: 50%;
+          background-color: lightgray;
+          flex: 0 0 auto; /* Кружочки не растягиваются и не сжимаются */
+      }
+      .circle.lived { background-color: red; }
+      .warn-text { color: red; }
+
+      @media print {
+        body { margin-top: 0px; padding: 20px; padding-top: 0px; }
+        .container { width: 100%; max-width: none; }
+        #weeksContainer { gap: 2px; }
+        .date-input { display: none; }
+      }
+
+      @media (max-width: 900px) {
+        .header { flex-direction: column; }
+        h2 { margin-bottom: 20px; }
+        .container { flex-direction: column;  width: 90%; }
+      }
+    </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <h2>90 лет вашей жизни <span class="warn-text">в неделях</span></h2>
+      </div>
+      <div class="date-input">Укажите дату вашего рождения: <input type="date" id="birthdate"></div>
+    </header>
+    <div id="weeksContainer"></div>
+    <br /><br />
+    <div>
+      <h3>В чём смысл?</h3>
+      Распечатайте первую страницу сайта на А4, пометьте текстовыделителем этапы своей жизни и вы получите наглядную полную карту
+      жизни, уместившуюся на обычном листе, которая даст вам наглядное представление о уже прожитом времени, о конечности жизни и
+      поможет ценить каждую неделю.
+      <br />
+      4 680 недель - это все Ваши недели (в лучшем случае), и они у Вас есть, пока... ведь, конец листа уже видно.
+    </div>
+  </div>
+  <div class="footer">
+    &nbsp;
+  </div>
+</body>
+<script>
+    const weeksContainer = document.getElementById('weeksContainer');
+    const birthdateInput = document.getElementById('birthdate');
+    const livedWeeks = (birthdate) => Math.floor((new Date() - birthdate) / (1000 * 3600 * 24 * 7));
+
+    function createWeeks() {
+        for (let i = 0; i < 90 * 52; i++) {
+            const circle = document.createElement('div');
+            circle.classList.add('circle');
+            weeksContainer.appendChild(circle);
+        }
+    }
+
+    function updateWeeks() {
+        const birthdate = new Date(birthdateInput.value);
+        const weeksLeave = livedWeeks(birthdate);
+
+        const circles = document.querySelectorAll('.circle');
+        circles.forEach((circle, index) => {
+            if (index < weeksLeave) {
+                circle.classList.add('lived');
+            } else {
+                circle.classList.remove('lived');
+            }
+        });
+
+        // Устанавливаем GET-параметр "bd" в URL
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('bd', birthdate.getTime()); // Добавляем timestamp в параметр "bd"
+        history.pushState({}, '', newUrl); // Обновляем URL без перезагрузки страницы
+    }
+
+    // Функция для обработки GET-параметра "bd"
+    function handleBirthdateParam() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const bdParam = urlParams.get('bd');
+        if (bdParam) {
+            const birthdate = new Date(parseInt(bdParam));
+            birthdateInput.value = birthdate.toISOString().split('T')[0]; // Устанавливаем дату в инпуте
+            updateWeeks();
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      createWeeks();
+      updateWeeks();
+      birthdateInput.addEventListener('change', updateWeeks);
+      handleBirthdateParam();
+    });
+</script>
+</html>
