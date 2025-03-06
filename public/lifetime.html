@@ -20,6 +20,7 @@
           flex: 0 0 auto; /* Кружочки не растягиваются и не сжимаются */
       }
       .circle.lived { background-color: red; }
+      .circle.gray { background-color: #886666; cursor: pointer; }
       .warn-text { color: red; }
 
       .theme-icon { position: fixed; bottom: 30px; right: 30px; display: flex; align-items: center; color: #fff; background: #14161b; font-size: 90%; border-radius: 5px; padding: 2px 6px; opacity: 0.7; user-select: none; cursor: pointer; }
@@ -42,6 +43,7 @@
         #weeksContainer { gap: 2px; }
       }
     </style>
+    <script src="https://psychosynthesis.github.io/AmazingJS/vanicom.min.js"></script>
 </head>
 <body>
   <div class="container">
@@ -78,11 +80,16 @@
     const weeksContainer = document.getElementById('weeksContainer');
     const birthdateInput = document.getElementById('birthdate');
     const livedWeeks = (birthdate) => Math.floor((new Date() - birthdate) / (1000 * 3600 * 24 * 7));
+    const isOverAverageLifetime = (years) => years > 3952; // 3952 недель это 76 лет
 
     function createWeeks() {
         for (let i = 0; i < 90 * 52; i++) {
             const circle = document.createElement('div');
             circle.classList.add('circle');
+            if (isOverAverageLifetime(i)) {
+              circle.setAttribute('title', 'Вряд ли вы до сюда доживёте, средняя продолжительность жизни в мире — 76 лет');
+              circle.classList.add('gray');
+            }
             weeksContainer.appendChild(circle);
         }
     }
@@ -94,10 +101,11 @@
 
         const circles = document.querySelectorAll('.circle');
         circles.forEach((circle, index) => {
+          let beforeClassname = circle.className;
             if (index < weeksLeave) {
-                circle.classList.add('lived');
+                circle.className = 'circle lived';
             } else {
-                circle.classList.remove('lived');
+                circle.className = isOverAverageLifetime(index) ? ('circle gray') : 'circle';
             }
         });
 
@@ -105,16 +113,22 @@
         const newUrl = new URL(window.location);
         newUrl.searchParams.set('bd', birthdate.getTime()); // Добавляем timestamp в параметр "bd"
         history.pushState({}, '', newUrl); // Обновляем URL без перезагрузки страницы
+        setLocalItem('bd', birthdate.getTime());  // Сохраняем в локалсторадже
     }
 
     // Функция для обработки GET-параметра "bd"
     function handleBirthdateParam() {
         const urlParams = new URLSearchParams(window.location.search);
         const bdParam = urlParams.get('bd');
+        const savedBirthday = getLocalItem('bd');
         if (bdParam) {
-            const birthdate = new Date(parseInt(bdParam));
-            birthdateInput.value = birthdate.toISOString().split('T')[0]; // Устанавливаем дату в инпуте
-            updateWeeks();
+          const birthdate = new Date(parseInt(bdParam));
+          birthdateInput.value = birthdate.toISOString().split('T')[0]; // Устанавливаем дату в инпуте
+          updateWeeks();
+        } else if (savedBirthday) {
+          const birthdate = new Date(parseInt(savedBirthday));
+          birthdateInput.value = birthdate.toISOString().split('T')[0]; // Устанавливаем дату в инпуте
+          updateWeeks();
         }
     }
 
